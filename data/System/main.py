@@ -11,6 +11,8 @@ from hotkeys import Hotkeys
 from tree_view import FolderTreeView
 from device_manager import RemovableDeviceManager
 from logger import log_event
+from command_interpreter import CommandInterpreter
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -84,6 +86,13 @@ class MainWindow(QWidget):
         help_menu.addAction(help_action)
         layout.setMenuBar(self.menu_bar)
 
+        utilities_menu = self.menu_bar.addMenu("Утилиты")
+
+        # В меню "Утилиты"
+        interpreter_action = QAction("Командный интерпретатор", self)
+        interpreter_action.triggered.connect(self.open_command_interpreter)
+        utilities_menu.addAction(interpreter_action)
+
         self.setLayout(layout)
         self.search_engine = SearchEngine(self.tree_view)
 
@@ -103,6 +112,10 @@ class MainWindow(QWidget):
     def on_device_removed(self, device_path):
         log_event(f"Отключено устройство: {device_path}")
         self.tree_view.populate_tree()
+
+    def open_command_interpreter(self):
+        self.interpreter_window = CommandInterpreter()
+        self.interpreter_window.show()
 
     def show_about_dialog(self):
         QMessageBox.information(
