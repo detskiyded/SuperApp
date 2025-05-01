@@ -1,6 +1,6 @@
 import getpass
 
-from PyQt5.QtGui import QDropEvent, QDragEnterEvent
+from PyQt5.QtGui import QDropEvent, QDragEnterEvent, QIcon
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QAction, QInputDialog, QMessageBox
 from PyQt5.QtCore import Qt
 import os
@@ -14,6 +14,13 @@ class FolderTreeView(QTreeWidget):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
         self.itemDoubleClicked.connect(self.on_item_double_clicked)
+
+        # Загрузка иконок
+        icons_path = os.path.join("data", "System", "icons")
+        self.folder_icon = QIcon(os.path.join(icons_path, "folder.png"))
+        self.file_icon = QIcon(os.path.join(icons_path, "document.png"))
+        self.trash_icon = QIcon(os.path.join(icons_path, "trashbin.png"))
+        self.usb_icon = QIcon(os.path.join(icons_path, "usb.png"))
 
         # Drag and drop setup
         self.setAcceptDrops(True)
@@ -32,8 +39,19 @@ class FolderTreeView(QTreeWidget):
         self.clear()
 
         system_item = QTreeWidgetItem([os.path.basename(self.system_folder)])
+        system_item.setIcon(0, self.folder_icon)
+        self.addTopLevelItem(system_item)
+        self.load_folder_contents(self.system_folder, system_item)
+
         trashbin_item = QTreeWidgetItem([os.path.basename(self.trashbin_folder)])
+        trashbin_item.setIcon(0, self.trash_icon)
+        self.addTopLevelItem(trashbin_item)
+        self.load_folder_contents(self.trashbin_folder, trashbin_item)
+
         user_folders_item = QTreeWidgetItem([os.path.basename(self.user_folders_folder)])
+        user_folders_item.setIcon(0, self.folder_icon)
+        self.addTopLevelItem(user_folders_item)
+        self.load_folder_contents(self.user_folders_folder, user_folders_item)
 
         self.addTopLevelItem(system_item)
         self.addTopLevelItem(trashbin_item)
@@ -52,10 +70,12 @@ class FolderTreeView(QTreeWidget):
 
             if os.path.isdir(full_path):
                 item = QTreeWidgetItem([entry])
+                item.setIcon(0, self.folder_icon)
                 self.addTopLevelItem(item)
                 self.load_folder_contents(full_path, item)
             else:
                 file_item = QTreeWidgetItem([entry])
+                file_item.setIcon(0, self.file_icon)
                 self.addTopLevelItem(file_item)
 
         # Теперь добавляем съёмные носители
@@ -68,6 +88,7 @@ class FolderTreeView(QTreeWidget):
                 device_path = os.path.join(media_path, device)
                 if os.path.isdir(device_path):
                     device_item = QTreeWidgetItem(removable_root, [device])
+                    device_item.setIcon(0, self.usb_icon)
                     self.load_folder_contents(device_path, device_item)
 
         self.clearSelection()
@@ -203,15 +224,18 @@ class FolderTreeView(QTreeWidget):
             log_event(f"Не удалось переместить в корзину: {e}")
 
     def load_folder_contents(self, folder_path, parent_item):
-        for entry in os.listdir(folder_path):
-            entry_path = os.path.join(folder_path, entry)
-            if os.path.isdir(entry_path):
-                item = QTreeWidgetItem([entry])
-                parent_item.addChild(item)
-                self.load_folder_contents(entry_path, item)
-            else:
-                file_item = QTreeWidgetItem([entry])
-                parent_item.addChild(file_item)
+        try:
+            for entry in os.listdir(folder_path):
+                full_path = os.path.join(folder_path, entry)
+                if os.path.isdir(full_path):
+                    folder_item = QTreeWidgetItem(parent_item, [entry])
+                    folder_item.setIcon(0, self.folder_icon)
+                    self.load_folder_contents(full_path, folder_item)
+                else:
+                    file_item = QTreeWidgetItem(parent_item, [entry])
+                    file_item.setIcon(0, self.file_icon)
+        except Exception as e:
+            print(f"Ошибка при загрузке папки: {folder_path} — {e}")
 
     def show_context_menu(self, position):
         selected_item = self.itemAt(position)

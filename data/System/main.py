@@ -11,6 +11,9 @@ from hotkeys import Hotkeys
 from tree_view import FolderTreeView
 from device_manager import RemovableDeviceManager
 from logger import log_event
+from command_interpreter import CommandInterpreter
+import subprocess
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -62,7 +65,7 @@ class MainWindow(QWidget):
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Поиск файлов и папок...")
         self.search_bar.textChanged.connect(self.perform_search)
-        layout.addWidget(self.search_bar, stretch=0)  # Строка поиска (очень тонкая)
+        layout.addWidget(self.search_bar, stretch=0)  # Строка поиска
 
         # Дерево файлов
         self.tree_view = FolderTreeView(
@@ -84,6 +87,25 @@ class MainWindow(QWidget):
         help_menu.addAction(help_action)
         layout.setMenuBar(self.menu_bar)
 
+        # Меню "Утилиты"
+        utilities_menu = self.menu_bar.addMenu("Утилиты")
+
+        interpreter_action = QAction("Внутренний терминал", self)
+        interpreter_action.triggered.connect(self.open_command_interpreter)
+        utilities_menu.addAction(interpreter_action)
+
+        terminal_action = QAction("Терминал Linux", self)
+        terminal_action.triggered.connect(self.open_terminal)
+        utilities_menu.addAction(terminal_action)
+
+        monitor_action = QAction("Монитор ресурсов", self)
+        monitor_action.triggered.connect(self.open_system_monitor)
+        utilities_menu.addAction(monitor_action)
+
+        settings_action = QAction("Настройки системы", self)
+        settings_action.triggered.connect(self.open_settings)
+        utilities_menu.addAction(settings_action)
+
         self.setLayout(layout)
         self.search_engine = SearchEngine(self.tree_view)
 
@@ -103,6 +125,28 @@ class MainWindow(QWidget):
     def on_device_removed(self, device_path):
         log_event(f"Отключено устройство: {device_path}")
         self.tree_view.populate_tree()
+
+    def open_command_interpreter(self):
+        self.interpreter_window = CommandInterpreter()
+        self.interpreter_window.show()
+
+    def open_terminal(self):
+        try:
+            subprocess.Popen(["gnome-terminal"])
+        except Exception as e:
+            print(f"Ошибка запуска терминала: {e}")
+
+    def open_system_monitor(self):
+        try:
+            subprocess.Popen(["gnome-system-monitor"])
+        except Exception as e:
+            print(f"Ошибка запуска монитора ресурсов: {e}")
+
+    def open_settings(self):
+        try:
+            subprocess.Popen(["gnome-control-center"])
+        except Exception as e:
+            print(f"Ошибка запуска настроек: {e}")
 
     def show_about_dialog(self):
         QMessageBox.information(
