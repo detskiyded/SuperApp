@@ -2,6 +2,8 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit
 import subprocess
 import os
+from logger import log_event
+
 
 class CommandInterpreter(QWidget):
     def __init__(self):
@@ -41,7 +43,7 @@ class CommandInterpreter(QWidget):
             "Доступные команды:\n"
             "  ping [адрес]       - Пинговать сервер\n"
             "  ipconfig           - Показать IP настройки\n"
-            "  traceroute [адрес] - Маршрут до сервера\n"
+            "  tracepath [адрес] - Маршрут до сервера\n"
             "  nslookup [домен]   - Узнать IP сайта\n"
             "  whoami             - Текущий пользователь\n"
             "  ls                 - Список файлов\n"
@@ -58,6 +60,8 @@ class CommandInterpreter(QWidget):
 
         if not command_text:
             return
+        if command_text is not None:
+            log_event(f"Введена команда в терминале: {command_text}")
 
         self.output_area.append(f"{self.current_path} > {command_text}")
 
@@ -66,8 +70,8 @@ class CommandInterpreter(QWidget):
             self.run_system_command(["ping", "-c", "4"] + command_text.split()[1:])
         elif command_text == "ipconfig":
             self.run_system_command(["ip", "a"])
-        elif command_text.startswith("traceroute"):
-            self.run_system_command(["traceroute"] + command_text.split()[1:])
+        elif command_text.startswith("tracepath"):
+            self.run_system_command(["tracepath"] + command_text.split()[1:])
         elif command_text.startswith("nslookup"):
             self.run_system_command(["nslookup"] + command_text.split()[1:])
         elif command_text == "whoami":
