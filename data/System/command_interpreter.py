@@ -43,7 +43,7 @@ class CommandInterpreter(QWidget):
             "Доступные команды:\n"
             "  ping [адрес]       - Пинговать сервер\n"
             "  ipconfig           - Показать IP настройки\n"
-            "  tracepath [адрес] - Маршрут до сервера\n"
+            "  tracepath [адрес]  - Маршрут до сервера\n"
             "  nslookup [домен]   - Узнать IP сайта\n"
             "  whoami             - Текущий пользователь\n"
             "  ls                 - Список файлов\n"

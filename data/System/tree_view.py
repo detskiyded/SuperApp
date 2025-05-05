@@ -40,18 +40,12 @@ class FolderTreeView(QTreeWidget):
 
         system_item = QTreeWidgetItem([os.path.basename(self.system_folder)])
         system_item.setIcon(0, self.folder_icon)
-        self.addTopLevelItem(system_item)
-        self.load_folder_contents(self.system_folder, system_item)
 
         trashbin_item = QTreeWidgetItem([os.path.basename(self.trashbin_folder)])
         trashbin_item.setIcon(0, self.trash_icon)
-        self.addTopLevelItem(trashbin_item)
-        self.load_folder_contents(self.trashbin_folder, trashbin_item)
 
         user_folders_item = QTreeWidgetItem([os.path.basename(self.user_folders_folder)])
         user_folders_item.setIcon(0, self.folder_icon)
-        self.addTopLevelItem(user_folders_item)
-        self.load_folder_contents(self.user_folders_folder, user_folders_item)
 
         self.addTopLevelItem(system_item)
         self.addTopLevelItem(trashbin_item)

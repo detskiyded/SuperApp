@@ -1,7 +1,12 @@
+import multiprocessing
 import os
+import subprocess
+import sys
+
+from data.System.child_process import ChildWindow
 from search import SearchEngine
 from PyQt5.QtWidgets import QLineEdit
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QApplication, QVBoxLayout, QWidget, QMessageBox,
@@ -13,7 +18,8 @@ from device_manager import RemovableDeviceManager
 from logger import log_event
 from command_interpreter import CommandInterpreter
 import subprocess
-
+from multiprocessing import Process, Queue
+from process_launcher import run_child_window
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -29,6 +35,15 @@ class MainWindow(QWidget):
         self.action_move_to_trash = QAction("Поместить в корзину", self)
         self.action_rename = QAction("Переименовать", self)
         self.action_clear_trash = QAction("Очистить корзину", self)
+
+        # Создаем очередь один раз
+        self.child_queues = []
+        self.queue = None
+
+        # Устанавливаем таймер на передачу информации
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.send_window_info_to_queue)
+        self.timer.start(1000)  # Каждую секунду
 
         # Добавляем действия в окно
         self.addAction(self.action_create_file)
@@ -81,10 +96,21 @@ class MainWindow(QWidget):
 
         # Создаём меню
         self.menu_bar = QMenuBar(self)
+
+        process_action = QAction("Создать процесс", self)
+        process_action.triggered.connect(lambda: self.launch_child_process())
+        self.menu_bar.addAction(process_action)
+
         help_menu = self.menu_bar.addMenu("Помощь")
+
         help_action = QAction("Справка", self)
         help_action.triggered.connect(self.show_help_dialog)
+
+        about_action = QAction("О программе", self)
+        about_action.triggered.connect(self.show_about_dialog)
+
         help_menu.addAction(help_action)
+        help_menu.addAction(about_action)
         layout.setMenuBar(self.menu_bar)
 
         # Меню "Утилиты"
@@ -148,6 +174,46 @@ class MainWindow(QWidget):
         except Exception as e:
             print(f"Ошибка запуска настроек: {e}")
 
+    def count_fds(self):
+        pid = os.getpid()
+        try:
+            return len(os.listdir(f"/proc/{pid}/fd"))
+        except FileNotFoundError:
+            return 0
+
+    def send_window_info_to_queue(self):
+        width = self.width()
+        height = self.height()
+        process_name = multiprocessing.current_process().name
+        descriptor_count = self.count_fds()
+        pid = os.getpid()  # Получаем PID текущего процесса
+
+        info = {
+            "width": width,
+            "height": height,
+            "process_name": process_name,
+            "fds": descriptor_count,
+            "pid": pid
+        }
+        for queue in self.child_queues:
+            try:
+                queue.put(info)
+            except Exception as e:
+                print(f"[Ошибка отправки в очередь]: {e}")
+
+    def launch_child_process(self):
+        queue = multiprocessing.Queue()
+        self.child_queues.append(queue)
+
+        # Новый процесс
+        process = multiprocessing.Process(
+            target=run_child_window,
+            args=(queue,),
+            name="ChildProcess"
+        )
+        process.daemon = False
+        process.start()
+
     def show_about_dialog(self):
         QMessageBox.information(
             self,
@@ -170,13 +236,17 @@ class MainWindow(QWidget):
         QMessageBox.information(self, "Справка", help_text)
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method('spawn')
+    queue = Queue()
+
     app = QApplication([])
 
     font = QFont("Ubuntu-Sans", 18)
     app.setFont(font)
 
     window = MainWindow()
-    window.setWindowTitle("Файловый менеджер")
+    window.setWindowTitle("Caesar")
     window.resize(800, 600)
     window.show()
+    window.queue = queue
     app.exec_()
